@@ -58,35 +58,33 @@ void selectRedObj(Mat &frameCopy, Mat &imgHSV, Mat &imgThresholded, int minmaxhs
 }
 
 
-void getCenterOfObj(Mat &imgIn, Mat &imgLines, int *iLastX, int *iLastY){
+void getCenterOfObj(Mat &imgIn, Mat &imgLines, int iLastXY[2], double *dArea){
 	
-	
+	int iLastX = iLastXY[0];
 	
 	//Calculate the moments of the thresholded image
 	Moments oMoments = moments(imgIn);
 	
-	
-	
 	double dM01 = oMoments.m01;
 	double dM10 = oMoments.m10;
-	double dArea = oMoments.m00;
+	*dArea = oMoments.m00;
 	
 	
 	// if the area <= 10000, I consider that the there are no object in the image and it's because of the noise, the area is not zero 
-	if (dArea > 10000)
+	if (*dArea > 10000)
 	{
 		//calculate the position of the ball
-		int posX = dM10 / dArea;
-		int posY = dM01 / dArea;        
+		int posX = dM10 / *dArea;
+		int posY = dM01 / *dArea;        
 
-		if (*iLastX >= 0 && *iLastY >= 0 && posX >= 0 && posY >= 0)
+		if (iLastXY[0] >= 0 && iLastXY[1] >= 0 && posX >= 0 && posY >= 0)
 		{
 			//Draw a red line from the previous point to the current point
-			line(imgLines, Point(posX, posY), Point(*iLastX, *iLastY), Scalar(0,0,255), 2);
+			line(imgLines, Point(posX, posY), Point(iLastXY[0], iLastXY[1]), Scalar(0,0,255), 2);
 		}
 
-		*iLastX = posX;
-		*iLastY = posY;
+		iLastXY[0] = posX;
+		iLastXY[1] = posY;
 	}
 	
 	

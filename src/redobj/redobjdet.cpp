@@ -5,25 +5,38 @@
 
 
 
-int main( int argc, const char** argv )
+int main( int argc, char **argv )
 {
-	//ros::init(argc, argv, "talker");
+	
+// %Tag(INIT)%
+	ros::init(argc, argv, "visiontracker");
+// %EndTag(INIT)%
+
+// %Tag(NODEHANDLE)%
+	ros::NodeHandle n;
+// %EndTag(NODEHANDLE)%
+
+// %Tag(PUBLISHER)%
+	ros::Publisher chatter_pub = n.advertise<ros_umirtx_vision::VisPMsg>("visionposition", 1000);
+// %EndTag(PUBLISHER)%
+
 	try{
-    //CvCapture* capture = 0;
-    VideoCapture cap(0); // open the default camera
-    
+		
+	int c = 0 ;
+    VideoCapture cap(c); // open the default camera
     Mat frame, frameCopy, image;
     Mat rgbimg[3], tempimg, prodimg;
-    
 	Mat imgThresholded, imgHSV;
 	
 	int minmaxhsv[3][2] = {{103,133},{108,254},{128,248}};
-	
-	int iLastX = -1; 
-	int iLastY = -1;
+	int iLastXY[2] = {-1,-1};
+	double dArea = 0;
+	int frameHeight = 480, frameWidth = 640;
+	double xpos = 0.5;
+	double ypos = 0.5;
     
-    //capture = cvCaptureFromCAM( 0 );
-    int c = 0 ;
+    ros_umirtx_vision::VisPMsg msg;
+    
     if(!cap.isOpened()) {
 		cout << "Capture from CAM " <<  c << " didn't work" << endl;
 		return -1;
@@ -43,6 +56,8 @@ int main( int argc, const char** argv )
 		flip( frame, frameCopy, -1 );
 			
 		Mat imgLines = Mat::zeros( frameCopy.size(), CV_8UC3 );
+		frameHeight = frame.rows;
+		frameWidth = frame.cols;
 		
         cout << "In capture ..." << endl;
         for(;;)
@@ -59,7 +74,15 @@ int main( int argc, const char** argv )
             
 			selectRedObj(frameCopy, imgHSV, imgThresholded, minmaxhsv);
             
-			getCenterOfObj(imgThresholded, imgLines, &iLastX, &iLastY);
+			getCenterOfObj(imgThresholded, imgLines, iLastXY, &dArea);
+			
+			//std::cout<<"X: "<<iLastXY[0]<<" Y: "<<iLastXY[1]<<" Area: "<<dArea<<std::endl;
+			msg.x = 100*((double)iLastXY[0])/frameWidth;
+			msg.y = 100*(double)iLastXY[1]/frameHeight;
+			msg.area = 100*dArea/frameWidth/frameHeight;
+			
+			chatter_pub.publish(msg);
+			
 			
             imshow("Thresholded Image", imgThresholded); //show the thresholded image
             frameCopy = frameCopy + imgLines;
@@ -73,13 +96,14 @@ int main( int argc, const char** argv )
             if( waitKey( 10 ) >= 0 )
                 //goto _cleanup_;
                 break;
+            
+            ros::spinOnce();
         }
 
         waitKey(0);
 
 
 //_cleanup_:
-        //cvReleaseCapture( &capture );
     }
 }
 catch(int e){

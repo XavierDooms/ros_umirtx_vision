@@ -86,7 +86,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES ros_umirtx_vision
-  CATKIN_DEPENDS roscpp rospy std_msgs
+	CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
 	CATKIN_DEPENDS message_runtime
 	DEPENDS opencv
@@ -111,16 +111,24 @@ include_directories(
 
 ## Declare a cpp executable
 # add_executable(ros_umirtx_vision_node src/ros_umirtx_vision_node.cpp)
-add_executable(redobjdet src/redobj/redobjdet.cpp src/redobj/redobjdetfx.cpp src/redobj/redobjdet.h)
+add_executable(talker src/talker.cpp)
+add_executable(redobjdet src/redobj/redobjdet.cpp src/redobj/redobjdetfx.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(ros_umirtx_vision_node ros_umirtx_vision_generate_messages_cpp)
+add_dependencies(talker ${catkin_EXPORTED_TARGETS})
+
+add_dependencies(redobjdet ros_umirtx_vision_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(ros_umirtx_vision_node
 #   ${catkin_LIBRARIES}
 # )
+target_link_libraries(talker
+   ${catkin_LIBRARIES}
+ )
+
 target_link_libraries(redobjdet
    ${catkin_LIBRARIES}
    ${OpenCV_LIBRARIES} 
