@@ -79,15 +79,9 @@ class genint:
 		
 	def MainFunc(self):
 		print "Starting controlschemes"
-		#rospy.Timer(rospy.Duration(1), partial(robotreqcallback,self))
-		#while not rospy.is_shutdown():
-		#	hello_str = "hello world %s" % rospy.get_time()
-		#	rospy.loginfo(hello_str)
-		#	pub.publish(hello_str)
-		#	rate.sleep()
-		#rospy.spin()
 		
 		self.initRobot()
+		
 		self.searchObject()
 		
 		
@@ -97,46 +91,19 @@ class genint:
 		
 	def req2Robot(self,msgtup):
 		msg = ArmMsg()
-		#fillInMsg(msgtup,msg)
-		msg.status   = 5
-		msg.shoulder = 0
-		msg.elbow    = 0
-		msg.zed      = 0
-		msg.wrist1   = 0
-		msg.wrist2   = 0
-		msg.yaw      = 0
-		msg.gripper  = 0
+		fillInMsg(msgtup,msg)
 		
 		resp = self.reqhandl(msg)
 		
 		print "response: ", resp.armresp.status
-		return resp
-		
-		#try:
-		#	resp1 = self.reqhandl(msg)
-		#	print "Response: " resp1
-		#	return
-		#except rospy.ServiceException, e:
-		#	print "Service call failed: %s"%e
-		#return
+		return resp.armresp
 		
 		
 	def initRobot(self):
 		print "Initialising robot: "
 		print "Connecting to serial..."
-		#senddata = [5,0,0,0, 0,0,0,0] #5 = init serial connection
-		#resp = self.req2Robot(senddata)
-		msg = ArmRequestRequest()
-		msg.armreq.status   = 5
-		msg.armreq.shoulder = 0
-		msg.armreq.elbow    = 0
-		msg.armreq.zed      = 0
-		msg.armreq.wrist1   = 0
-		msg.armreq.wrist2   = 0
-		msg.armreq.yaw      = 0
-		msg.armreq.gripper  = 0
-		
-		resp = self.reqhandl(msg)
+		senddata = [5,0,0,0, 0,0,0,0] #5 = init serial connection
+		resp = self.req2Robot(senddata)
 		time.sleep(1)
 		
 		print "Initialising arm..."
@@ -148,7 +115,7 @@ class genint:
 		
 	def searchObject(self):
 		print "Searching Object..."
-		motcoord = (-500,-300,300,200,200,-200,600)
+		motcoord = (300,1000,-500,2000,2000,0,600)
 		self.moveMotTo(motcoord)
 		
 		return
