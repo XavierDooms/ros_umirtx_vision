@@ -6,27 +6,28 @@ from ros_umirtx_driver.msg import *
 from ros_umirtx_driver.srv import *
 import sys, os
 import time
+import math
 
 #TODO: min maxes rounds
 class RobParam:
 	
-	def __init__(self, name):
+	def __init__(self):
 		#All values stored in servo values
-		self.shoulder = int(0)
 		self.elbow    = int(0)
+		self.shoulder = int(0)
 		self.zed      = int(-120)
 		self.wrist1   = int(0)
 		self.wrist2   = int(0)
 		self.yaw      = int(0)
-		self.gripper  = int(1000)
+		self.gripper  = int(600)
 		
-		self.zmin1    = int(50) #mm min hight first fase (Approach)
+		self.zmin1    = int(100) #mm min hight first fase (Approach)
 		self.zmin2    = int(25) #mm min hight second fase (Grab)
 		
 	#Sets new robot values
-	def setRob(self,shoulder,elbow,zed,wrist1,wrist2,yaw,gripper):
-		self.shoulder = shoulder
+	def setRob(self,elbow,shoulder,zed,wrist1,wrist2,yaw,gripper):
 		self.elbow    = elbow
+		self.shoulder = shoulder
 		self.zed      = zed
 		self.wrist1   = wrist1
 		self.wrist2   = wrist2
@@ -36,42 +37,68 @@ class RobParam:
 		
 	#Gets the current robot values
 	def getRob(self):
-		return [self.shoulder,self.elbow,self.zed,self.wrist1,self.wrist2,self.yaw,self.gripper]
+		return [self.elbow,self.shoulder,self.zed,self.wrist1,self.wrist2,self.yaw,self.gripper]
 		
 	#Sets the robot values with real world coordinates (mm & degrees)
-	def setReal(self,shoulder,elbow,zed,pitch,roll,yaw,gripper):	
-		self.shoulder =  int(round(14.6113*shoulder)))
-		self.elbow    =  int(round(29.2227*elbow))
-		self.zed      =  int(round(3.74953*(915-zed)))
+	def setReal(self,shoulder,elbow,zed,pitch,roll,yaw,gripper):
+		self.elbow    =  int(round(14.6113*elbow))	
+		self.shoulder =  int(round(29.2227*shoulder))
+		self.zed      =  int(round(3.74953*(zed-915)))
 		self.wrist1   =  int(round(13.4862*(pitch+roll)))
 		self.wrist2   =  int(round(13.4862*(pitch-roll)))
 		self.yaw      =  int(round(9.73994*yaw))
-		self.gripper  =  int(round(gripper)) #TODO
+		self.gripper  =  int(round(12*gripper)) #TODO
 		return
 	
 	#Get real world values
 	def getReal(self):
-		robsho = self.shoulder/14.6113
-		robelb = self.elbow/29.2227
-		robzed = 915+self.zed/3.74953
-		robpit = (self.wrist1+self.wrist2)/13.4862
-		robroll= (self.wrist1-self.wrist2)/13.4862
-		robyaw = self.yaw/9.73994
-		robgri = self.gripper #TODO
-		return [robsho,robelb,robzed,robpit,robroll,robyaw,robgr]
+		robelb = self.elbow*0.06844
+		robsho = self.shoulder*0.03422
+		robzed = 915+self.zed*0.2667
+		robpit = (self.wrist1+self.wrist2)*0.07415/2
+		robroll= (self.wrist1-self.wrist2)*0.07415/2
+		robyaw = self.yaw*0.10267
+		robgri = self.gripper/12 #TODO
+		return [robelb,robsho,robzed,robpit,robroll,robyaw,robgr]
+		
+	def searchLR(self,direction,minangle,maxangle,step=400):
+		if(direction>0):
+			self.shoulder = self.shoulder + int(round(step))
+			if(self.shoulder > (maxangle)):
+				self.shoulder = int(round(maxangle))
+				return -1
+			return 1
+		else:
+			self.shoulder = self.shoulder - int(round(step))
+			if(self.shoulder < (minangle)):
+				self.shoulder = int(round(minangle))
+				return 1
+			return -1
 		
 	def chLRUD(self,lr=0,ud=0):
-		self.shoulder = self.shoulder + lr - ud
-		self.elbow = self.elbow + 2*ud
-		return [self.shoulder,self.elbow,self.zed,self.wrist1,self.wrist2,self.yaw,self.gripper]
+		print "lr: ",lr," ud: ",ud
+		elb = self.elbow + ud
+		sho = self.shoulder + lr
+		if(elb>=0):
+			self.elbow = int(0)
+			self.shoulder = int(sho)
+		else:
+			self.elbow = int(elb)
+			self.shoulder = int(sho)
+		return [self.elbow,self.shoulder,self.zed,self.wrist1,self.wrist2,self.yaw,self.gripper]
 		
-	def goDown1(self,value=100)
-		iv = int(round(value))
-		self.zed = self.zed - iv
-		hgrip = int(round(177*math.sin(radians((self.wrist1+self.wrist2)/13.4862))))
-		if(self.zed <= (self.zmin1+hgrip))
-			self.zed = self.zmin1+hgrip
-			return True
+	def goDown(self,value=100):
+		#iv = int(round(value))
+		#self.zed = self.zed - iv
+		angle = (self.wrist1+self.wrist2)*0.07415/2
+		hgrip = int(round(-177*math.sin(math.radians(angle))))
+		zmin = int(round(3.74953*(value+hgrip-915)))
+		#print "zmin:",zmin," angle:",angle," hgrip:",hgrip
+		if(zmin<-2700):
+			zmin=-2700
+		#if(self.zed <= (zmin)):
+		self.zed = zmin
+		#	return True
 		return False
 		
 	#Calculates the robot paramters with its x,y,z coordinates and the desired grip angle (yaw,pitch,roll)
@@ -102,19 +129,19 @@ class RobParam:
 		theta4 = yaw-thetax
 		
 		#Conversion to robot parameters
-		robsho = -14.6113*theta2*(180/math.pi)
-		robelb =  29.2227*theta3*(180/math.pi)
+		robelb = -14.6113*theta3*(180/math.pi)
+		robsho =  29.2227*theta2*(180/math.pi)
 		robyaw =  9.73994*theta4*(180/math.pi)
 		robwr1 =  13.4862*(pitchd+rolld)
 		robwr2 =  13.4862*(pitchd-rolld)
 		robzed =  3.74953*(915-zwrist)
 		
-		return  int(round([robsho,robelb,robzed,robwr1,robwr2,robyaw]))
+		return  int(round([robelb,robsho,robzed,robwr1,robwr2,robyaw]))
 		
-	def setxyzypr2rob(self,x,y,z,yaw,pitch,roll)
+	def setxyzypr2rob(self,x,y,z,yaw,pitch,roll):
 		param = self.xyzypr2rob(x,y,z,yaw,pitch,roll)
-		self.shoulder = param(1)
-		self.elbow    = param(2)
+		self.elbow    = param(1)
+		self.shoulder = param(2)
 		self.zed      = param(3)
 		self.wrist1   = param(4)
 		self.wrist2   = param(5)
@@ -142,19 +169,19 @@ class RobParam:
 		theta3 = 2*thetay
 		#theta4 = yaw-thetax
 		
-		robsho = -14.6113*theta2*(180/math.pi)
-		robelb =  29.2227*theta3*(180/math.pi)
+		robelb = -14.6113*theta3*(180/math.pi)
+		robsho =  29.2227*theta2*(180/math.pi)
 		robzed =  3.74953*(915-zwrist)
 		robwr1 =  13.4862*(pitchd+rolld)
 		robwr2 =  13.4862*(pitchd-rolld)
 		#robyaw =  9.73994*theta4*(180/math.pi)
 		
-		return  int(round([robsho,robelb,robzed,robwr1,robwr2,0]))
+		return  int(round([robelb,robsho,robzed,robwr1,robwr2,0]))
 	
-	def setxyzpr2rob1(self,x,y,z,yaw,pitch,roll)
+	def setxyzpr2rob1(self,x,y,z,yaw,pitch,roll):
 		param = self.xyzpr2rob1(x,y,z,yaw,pitch,roll)
-		self.shoulder = param(1)
-		self.elbow    = param(2)
+		self.elbow    = param(1)
+		self.shoulder = param(2)
 		self.zed      = param(3)
 		self.wrist1   = param(4)
 		self.wrist2   = param(5)
