@@ -91,8 +91,8 @@ class genint:
 		self.searchObject()
 		
 		#TODO in loop till low enough
-		self.centerObject(600)
-		#self.lowerGripper()
+		self.centerObject(700)
+		
 		#Rough lowering
 		hight = 400
 		while(hight>=100):
@@ -102,6 +102,31 @@ class genint:
 		hight = 50
 		self.robpar.goDown(hight)
 		self.centerObject(hight-10,0.3,0.6)
+		self.robpar.goDown(27)
+		self.moveMotTo()
+		while(self.isBusy()):
+			rospy.sleep(0.1)
+			
+		self.robpar.gripper = 12*30
+		self.moveMotTo()
+		while(self.isBusy()):
+			rospy.sleep(0.1)
+		
+		self.goToDropPosition()
+		self.robpar.goDown(30)
+		rospy.sleep(1)
+		
+		self.robpar.gripper = 12*70
+		self.moveMotTo()
+		while(self.isBusy()):
+			rospy.sleep(0.1)
+		
+		rospy.sleep(1)
+		self.robpar.zed = -1200
+		while(self.isBusy()):
+			rospy.sleep(0.1)
+		rospy.sleep(1)
+		
 		#Done
 		
 	def close(self):
@@ -118,7 +143,9 @@ class genint:
 		print "response: ", resp.armresp.elbow
 		return resp.armresp
 		
-	def moveMotTo(self,motcoord):
+	def moveMotTo(self,motcoord=[]):
+		if not motcoord:
+			motcoord = self.robpar.getRob()
 		senddata = list(motcoord)
 		senddata.insert(0,49)
 		print "Data: ",senddata
@@ -152,7 +179,7 @@ class genint:
 		
 		print "Initialising arm..."
 		senddata = [17,0,0,0, 0,0,0,0] #17 = init arm
-		resp = self.req2Robot(senddata)
+		#resp = self.req2Robot(senddata)
 		rospy.sleep(3)
 		
 		print "Going to start of search position"
@@ -164,13 +191,20 @@ class genint:
 		
 	def goToSearchPosition(self):
 		#Going to start position
-		self.robpar.setReal(-60,self.shscanmin,690,-90,0,0,60)
+		self.robpar.setReal(-60,self.shscanmin,690,-90,0,0,70)
 		#motcoord = (300,1000,-500,2000,2000,0,600)
-		par = self.robpar.getRob()
+		#par = self.robpar.getRob()
 		#print "Coord: ",par
-		self.moveMotTo(par)
+		#self.moveMotTo(par)
+		self.moveMotTo()
 		while(self.isBusy()):
-			rospy.sleep(1)
+			rospy.sleep(0.1)
+			
+	def goToDropPosition(self):
+		self.robpar.setReal(0,-90,300,-90,0,0,35)
+		self.moveMotTo()
+		while(self.isBusy()):
+			rospy.sleep(0.1)
 		
 	def searchObject(self):
 		print "Searching Object..."
@@ -201,12 +235,12 @@ class genint:
 			rospy.sleep(0.05)
 		return
 		
-	def centerObject(self,power=100,yc=0.5,xc=0.5):
+	def centerObject(self,power=100,yc=0.5,xc=0.5,prec=0.05):
 		print "Centering Object..."
 		centered = False
 		while (not centered):
-			xpos = 2*((self.xpos*0.01)-xc)
-			ypos = 2*((self.ypos*0.01)-yc)
+			xpos = 2*((self.xpos)-xc)
+			ypos = 2*((self.ypos)-yc)
 			#while(self.area <=30): #if
 			#	#TODO object lost
 			#	rospy.sleep(0.1)
@@ -218,8 +252,8 @@ class genint:
 			self.moveMotTo(par)
 			while(self.isBusy()):
 				rospy.sleep(0.1)
-			print "No longer busy"
-			centered = ((abs(xpos)<=0.05) and (abs(ypos)<=0.05))
+			#print "No longer busy"
+			centered = ((abs(xpos)<=prec) and (abs(ypos)<=prec))
 			#print "Centered?",centered
 			#if(centered):
 			#	break

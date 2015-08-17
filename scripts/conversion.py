@@ -40,7 +40,7 @@ class RobParam:
 		return [self.elbow,self.shoulder,self.zed,self.wrist1,self.wrist2,self.yaw,self.gripper]
 		
 	#Sets the robot values with real world coordinates (mm & degrees)
-	def setReal(self,shoulder,elbow,zed,pitch,roll,yaw,gripper):
+	def setReal(self,elbow,shoulder,zed,pitch,roll,yaw,gripper):
 		self.elbow    =  int(round(14.6113*elbow))	
 		self.shoulder =  int(round(29.2227*shoulder))
 		self.zed      =  int(round(3.74953*(zed-915)))
