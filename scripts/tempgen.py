@@ -107,7 +107,7 @@ class genint:
 		while(self.isBusy()):
 			rospy.sleep(0.1)
 			
-		self.robpar.gripper = 12*30
+		self.robpar.setGripperPC(30)
 		self.moveMotTo()
 		while(self.isBusy()):
 			rospy.sleep(0.1)
@@ -116,13 +116,13 @@ class genint:
 		self.robpar.goDown(30)
 		rospy.sleep(1)
 		
-		self.robpar.gripper = 12*70
+		self.robpar.setGripperPC(70)
 		self.moveMotTo()
 		while(self.isBusy()):
 			rospy.sleep(0.1)
 		
 		rospy.sleep(1)
-		self.robpar.zed = -1200
+		self.robpar.setZed(-1200)
 		while(self.isBusy()):
 			rospy.sleep(0.1)
 		rospy.sleep(1)
@@ -179,7 +179,7 @@ class genint:
 		
 		print "Initialising arm..."
 		senddata = [17,0,0,0, 0,0,0,0] #17 = init arm
-		#resp = self.req2Robot(senddata)
+		resp = self.req2Robot(senddata)
 		rospy.sleep(3)
 		
 		print "Going to start of search position"
