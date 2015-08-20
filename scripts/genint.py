@@ -60,7 +60,7 @@ class genint:
 	
 	def __init__(self):
 		self.setup()
-		self.MainFunc()
+		#self.MainFunc()
 		
 	def setup(self):
 		print "Setting up..."
@@ -290,6 +290,7 @@ class genint:
 
 if __name__ == '__main__':
     try:
-        genint()
+        gi = genint()
+        gi.MainFunc()
     except rospy.ROSInterruptException:
         pass
