@@ -24,6 +24,6 @@ using namespace cv;
 
 
 
-int createControlWindow(String nameWindow, int minmaxhsv[][2]);
+int createControlWindow(String nameWindow, int minmaxhsv[][2], int *status);
 void selectRedObj(Mat &frameCopy, Mat &imgHSV, Mat &imgThresholded, int minmaxhsv[][2]);
 void getCenterOfObj(Mat &imgIn, Mat &imgLines, int iLastXY[2], double *dArea);

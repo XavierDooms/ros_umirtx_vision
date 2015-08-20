@@ -10,7 +10,6 @@ import math
 
 #TODO: min maxes rounds
 class RobParam:
-	
 	def __init__(self):
 		#All values stored in servo values
 		self.elbow    = int(0)
@@ -26,13 +25,12 @@ class RobParam:
 		
 	#Sets new robot values
 	def setRob(self,elbow,shoulder,zed,wrist1,wrist2,yaw,gripper):
-		self.elbow    = elbow
-		self.shoulder = shoulder
-		self.zed      = zed
-		self.wrist1   = wrist1
-		self.wrist2   = wrist2
-		self.yaw      = yaw
-		self.gripper  = gripper
+		self.setElbow(elbow)
+		self.setShoulder(shoulder)
+		self.setzed(zed)
+		self.setWrists(wrist1,wrist2)
+		self.setYaw(yaw)
+		self.setGripper(gripper)
 		return
 		
 	#Gets the current robot values
@@ -41,13 +39,12 @@ class RobParam:
 		
 	#Sets the robot values with real world coordinates (mm & degrees)
 	def setReal(self,elbow,shoulder,zed,pitch,roll,yaw,gripper):
-		self.elbow    =  int(round(14.6113*elbow))	
-		self.shoulder =  int(round(29.2227*shoulder))
-		self.zed      =  int(round(3.74953*(zed-915)))
-		self.wrist1   =  int(round(13.4862*(pitch+roll)))
-		self.wrist2   =  int(round(13.4862*(pitch-roll)))
-		self.yaw      =  int(round(9.73994*yaw))
-		self.gripper  =  int(round(12*gripper)) #TODO
+		self.setElbow(14.6113*elbow)
+		self.setShoulder(29.2227*shoulder)
+		self.setZed(3.74953*(zed-915))
+		self.setPitchRoll(13.4862*pitch,13.4862*roll)
+		self.setYaw(9.73994*yaw)
+		self.setGrippermm(gripper) #TODO
 		return
 	
 	#Get real world values
@@ -58,20 +55,20 @@ class RobParam:
 		robpit = (self.wrist1+self.wrist2)*0.07415/2
 		robroll= (self.wrist1-self.wrist2)*0.07415/2
 		robyaw = self.yaw*0.10267
-		robgri = self.gripper/12 #TODO
+		robgri = selg.gripper*90/12 #TODO check correctness (manual = unclear. said non-linear)
 		return [robelb,robsho,robzed,robpit,robroll,robyaw,robgr]
 		
 	def searchLR(self,direction,minangle,maxangle,step=400):
 		if(direction>0):
-			self.shoulder = self.shoulder + int(round(step))
+			self.setShoulder(self.shoulder + int(round(step)))
 			if(self.shoulder > (maxangle)):
-				self.shoulder = int(round(maxangle))
+				self.setShoulder(maxangle)
 				return -1
 			return 1
 		else:
-			self.shoulder = self.shoulder - int(round(step))
+			self.setShoulder(self.shoulder - int(round(step)))
 			if(self.shoulder < (minangle)):
-				self.shoulder = int(round(minangle))
+				self.setShoulder(minangle)
 				return 1
 			return -1
 		
@@ -80,75 +77,75 @@ class RobParam:
 		elb = self.elbow + ud
 		sho = self.shoulder + lr
 		if(elb>=0):
-			self.elbow = int(0)
-			self.shoulder = int(sho)
+			self.setElbow(0)
+			self.setShoulder(sho)
 		else:
-			self.elbow = int(elb)
-			self.shoulder = int(sho)
+			self.setElbow(elb)
+			self.setShoulder(sho)
 		return [self.elbow,self.shoulder,self.zed,self.wrist1,self.wrist2,self.yaw,self.gripper]
 		
-	def goDown(self,value=100):
-		#iv = int(round(value))
-		#self.zed = self.zed - iv
+	def goDown(self,value=100): #Protects against hight of groundplate with gripper
 		angle = (self.wrist1+self.wrist2)*0.07415/2
 		hgrip = int(round(-177*math.sin(math.radians(angle))))
 		zmin = int(round(3.74953*(value+hgrip-915)))
 		#print "zmin:",zmin," angle:",angle," hgrip:",hgrip
 		if(zmin<-2700):
 			zmin=-2700
-		#if(self.zed <= (zmin)):
-		self.zed = zmin
-		#	return True
+		self.setZed(zmin)
 		return False
 		
 	def setElbow(self,value):
-		if(self.elbow > 2630)
-			self.elbow = int(round(2630))
-		elif(self.elbow<-2630):
+		if(self.elbow > 2206):
+			self.elbow = int(round(2206))
+		elif(self.elbow < -2630):
 			self.elbow = int(round(-2630))
 		else:
 			self.elbow = int(round(value))
 		
 	def setShoulder(self,value):
-		if(self.shoulder > )
-			self.shoulder = int(round())
+		if(self.shoulder > 2630):
+			self.shoulder = int(round(2630))
 		elif(self.shoulder < -2630):
 			self.shoulder = int(round(-2630))
 		else:
-		self.shoulder = int(round(value))
+			self.shoulder = int(round(value))
 		
 	def setZed(self,value):
-		if(self.zed > 0)
+		if(self.zed > 0):
 			self.zed = int(round(0))
 		elif(self.zed < -3554):
 			self.zed = int(round(-3554))
 		else:
-		self.zed = int(round(value))
+			self.zed = int(round(value))
 			
 	def setPitchRoll(self,pitch,roll):
-		pitch/2
-		if(pitch > 108)
+		#print "Pitch:",pitch," Roll:",roll
+		if(pitch > 108):
 			wr1 = 54
 			wr2 = 54
 		elif(pitch < -2642):
 			wr1 = -1321
 			wr2 = -1321
 		else:
-			wr1 = pitch/2
-			wr2 = pitch/2
+			wr1 = pitch
+			wr2 = pitch
 		
-		if(roll > 4882)
+		if(roll > 4882):
 			wr1 = wr1 + 2441
 			wr2 = wr2 - 2441
-		elif(roll < -3560)
+		elif(roll < -3560):
 			wr1 = wr1 - 1780
 			wr2 = wr2 + 1780
 		else:
-			wr1 = wr1 + roll/2
-			wr2 = wr2 - roll/2
+			wr1 = wr1 + roll
+			wr2 = wr2 - roll
+				
+		#print "wr1:",wr1," wr2:",wr2
+		self.wrist1 = int(round(wr1))
+		self.wrist2 = int(round(wr2))
 			
 			
-	def setWrist(self,wr1,wr2):
+	def setWrists(self,wr1,wr2):
 		pitch = wr1 + wr2
 		roll  = wr1 - wr2
 		self.setPitchRoll(pitch,roll)
@@ -156,40 +153,44 @@ class RobParam:
 		
 	def setWrist1(self,value): #not correct
 		self.wrist1 = int(round(value))
-		if(self.wrist1 > 2642)
+		if(self.wrist1 > 2642):
 			self.wrist1 = int(round(2642))
 		elif(self.wrist1 < -2642):
 			self.wrist1 = int(round(-2642))
 		
 	def setWrist2(self,value): #not correct
 		self.wrist2 = int(round(value))
-		if(self.wrist2 > 2642)
+		if(self.wrist2 > 2642):
 			self.wrist2 = int(round(2642))
 		elif(self.wrist2 < -2642):
 			self.wrist2 = int(round(-2642))
 		
 	def setYaw(self,value):
 		self.yaw = int(round(value))
-		if(self.yaw > 1071+(self.elbow/3))
+		if(self.yaw > 1071+(self.elbow/3)):
 			self.yaw = int(round(1071+(self.elbow/3)))
 		elif(self.yaw < -1071+(self.elbow/3)):
 			self.yaw = int(round(-1071+(self.elbow/3)))
 		
 	def setGripper(self,value):
 		self.gripper = int(round(value))
-		if(self.gripper > 1200)
+		if(self.gripper > 1200):
 			self.gripper = int(round(1200))
 		elif(self.gripper<-30):
 			self.gripper = int(round(-30))
+		#print "grip:",self.gripper
 			
 	def setGripperPC(self,PC=100):
 		self.setGripper(PC*12)
-			
+		
+	def setGrippermm(self,mm):
+		self.setGripper(mm*1200/90)
+		#TODO make correct
 		
 	#Calculates the robot paramters with its x,y,z coordinates and the desired grip angle (yaw,pitch,roll)
 	def xyzypr2rob(self,xtip,ytip,ztip,yawd,pitchd,rolld):
 		#Constants and radians values
-		lgrip  = 177
+		lgrip  = 177 #can vary when gripper is open or if gripping with "tips" or "jaw"
 		yawr   = math.radians(yawd)
 		pitchr = math.radians(pitchd)
 		rollr  = math.radians(rolld)

@@ -88,45 +88,28 @@ class genint:
 		
 		self.initRobot()
 		
+		#Search object
 		self.searchObject()
 		
-		#TODO in loop till low enough
+		#Rough goto (lowering)
 		self.centerObject(700)
+		self.moveDownToObj(50,400,3,0.5,0.5,0.8)
 		
-		#Rough lowering
-		hight = 400
-		while(hight>=100):
-			self.robpar.goDown(hight)
-			self.centerObject(hight,0.5,0.5)
-			hight = hight -100
-		hight = 50
-		self.robpar.goDown(hight)
-		self.centerObject(hight-10,0.3,0.6)
-		self.robpar.goDown(27)
-		self.moveMotTo()
-		while(self.isBusy()):
-			rospy.sleep(0.1)
-			
-		self.robpar.setGripperPC(30)
-		self.moveMotTo()
-		while(self.isBusy()):
-			rospy.sleep(0.1)
+		#Go down and grab
+		self.goDown(27)
+		self.grabber(35)
+		self.goDown(50)
 		
-		self.goToDropPosition()
-		self.robpar.goDown(30)
-		rospy.sleep(1)
+		#Drop off
+		self.goToDropPosition(35) #Gripper!
+		self.goDown(20)
+		self.grabber(70)
+		self.goDown(50)
 		
-		self.robpar.setGripperPC(70)
-		self.moveMotTo()
-		while(self.isBusy()):
-			rospy.sleep(0.1)
+		#Back to search position
+		self.goToSearchPosition()
 		
-		rospy.sleep(1)
-		self.robpar.setZed(-1200)
-		while(self.isBusy()):
-			rospy.sleep(0.1)
-		rospy.sleep(1)
-		
+		self.stopAndRelease()
 		#Done
 		
 	def close(self):
@@ -140,7 +123,7 @@ class genint:
 		
 		resp = self.reqhandl(msg)
 		
-		print "response: ", resp.armresp.elbow
+		#print "response: ", resp.armresp.elbow
 		return resp.armresp
 		
 	def moveMotTo(self,motcoord=[]):
@@ -161,8 +144,10 @@ class genint:
 		return stat
 		
 	def stopAndRelease(self):
-		#resp = self.req2Robot([0,0,0,0,0,0,0,0]) #FREE_STOP
+		resp = self.req2Robot([0,0,0,0,0,0,0,0]) #FREE_STOP
+		rospy.sleep(2)
 		resp = self.req2Robot([0,3,0,0,0,0,0,0]) #FREE_OFF
+		rospy.sleep(2)
 		return
 	
 	def testConn(self):
@@ -179,29 +164,24 @@ class genint:
 		
 		print "Initialising arm..."
 		senddata = [17,0,0,0, 0,0,0,0] #17 = init arm
-		resp = self.req2Robot(senddata)
-		rospy.sleep(3)
+		#resp = self.req2Robot(senddata)
+		rospy.sleep(2.0)
 		
 		print "Going to start of search position"
 		self.goToSearchPosition()
-		#rospy.sleep(15)
 		
 		print "Initialised"
 		return
 		
 	def goToSearchPosition(self):
 		#Going to start position
-		self.robpar.setReal(-60,self.shscanmin,690,-90,0,0,70)
-		#motcoord = (300,1000,-500,2000,2000,0,600)
-		#par = self.robpar.getRob()
-		#print "Coord: ",par
-		#self.moveMotTo(par)
+		self.robpar.setReal(-60,self.shscanmin,690,-98,0,0,70)
 		self.moveMotTo()
 		while(self.isBusy()):
 			rospy.sleep(0.1)
 			
-	def goToDropPosition(self):
-		self.robpar.setReal(0,-90,300,-90,0,0,35)
+	def goToDropPosition(self,grip=35):
+		self.robpar.setReal(-140,0,300,-90,0,0,grip)
 		self.moveMotTo()
 		while(self.isBusy()):
 			rospy.sleep(0.1)
@@ -211,6 +191,9 @@ class genint:
 		direction = 1
 		minangle = 29.2227*self.shscanmin
 		maxangle = 29.2227*self.shscanmax
+		
+		#print "Going to start of search position"
+		self.goToSearchPosition()
 		
 		#Turn around shoulder till object is found
 		found = 0
@@ -241,9 +224,6 @@ class genint:
 		while (not centered):
 			xpos = 2*((self.xpos)-xc)
 			ypos = 2*((self.ypos)-yc)
-			#while(self.area <=30): #if
-			#	#TODO object lost
-			#	rospy.sleep(0.1)
 			lr = int(round(-xpos*power))
 			ud = int(round(-ypos*power/2))
 			print "x:  ",xpos,"  y: ",ypos
@@ -251,7 +231,7 @@ class genint:
 			par = self.robpar.chLRUD(lr,ud)
 			self.moveMotTo(par)
 			while(self.isBusy()):
-				rospy.sleep(0.1)
+				rospy.sleep(0.05)
 			#print "No longer busy"
 			centered = ((abs(xpos)<=prec) and (abs(ypos)<=prec))
 			#print "Centered?",centered
@@ -260,16 +240,35 @@ class genint:
 		print "Centered: x=",xpos," y=",ypos
 		return
 		
-	def lowerGripper(self):
-		print "Lowering..."
-		self.robpar.goDown(300)
-		par = self.robpar.getRob()
-		self.moveMotTo(par)
-		print "waiting till no longer busy"
+	def goDown(self,hight):
+		self.robpar.goDown(hight)
+		self.moveMotTo()
 		while(self.isBusy()):
 			rospy.sleep(0.1)
-		print "Lowered"
-		return
+		
+	def moveDownToObj(self,hmin=50,hmax=400,step=3,xc=0.3,yc=0.6,power=0.8):
+		hl = []
+		hst = -(hmax-hmin)/step-1
+		for x in range(hmax,hmin,hst):
+			self.robpar.goDown(x)
+			self.centerObject(x,0.5,0.5,0.1)
+			print "H:",x
+		#rospy.sleep(2)
+		self.centerObject(20,0.5,0.5,0.10)
+			
+		#hight = hmax
+		#while(hight>=hmin):
+		#	self.robpar.goDown(hight)
+		#	self.centerObject(hight,0.5,0.5,0.1)
+		#	hight = hight-abs(hmax-hmin)/step
+		#rospy.sleep(2)
+		#self.centerObject(hight-10,0.5,0.5,0.10)
+		
+	def grabber(self,grip=80):
+		self.robpar.setGripperPC(grip)
+		self.moveMotTo()
+		while(self.isBusy()):
+			rospy.sleep(0.1)
 		
 
 if __name__ == '__main__':
