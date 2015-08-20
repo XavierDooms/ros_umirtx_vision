@@ -88,23 +88,31 @@ class genint:
 		
 		self.initRobot()
 		
+		
+		self.testxyz()
+		
 		#Search object
 		self.searchObject()
 		
 		#Rough goto (lowering)
-		self.centerObject(700)
-		self.moveDownToObj(50,400,3,0.5,0.5,0.8)
+		self.centerObject(800,0.7,0.5,0.1)
+		#self.moveDownToObj(50,400,3,0.5,0.5,0.8)
+		self.moveZedmm(100)
+		#rospy.sleep(5)
+		self.centerObject(100,0.38,0.5,0.03)
 		
 		#Go down and grab
-		self.goDown(27)
+		self.moveZedmm(27)
+		rospy.sleep(0.5)
 		self.grabber(35)
-		self.goDown(50)
+		self.moveZedmm(50)
 		
 		#Drop off
-		self.goToDropPosition(35) #Gripper!
-		self.goDown(20)
+		#self.goToDropPosition() #Gripper!
+		self.testxyz()
+		self.moveZedmm(30)
 		self.grabber(70)
-		self.goDown(50)
+		self.moveZedmm(50)
 		
 		#Back to search position
 		self.goToSearchPosition()
@@ -120,9 +128,7 @@ class genint:
 	def req2Robot(self,msgtup):
 		msg = ArmMsg()
 		fillInMsg(msgtup,msg)
-		
 		resp = self.reqhandl(msg)
-		
 		#print "response: ", resp.armresp.elbow
 		return resp.armresp
 		
@@ -180,11 +186,22 @@ class genint:
 		while(self.isBusy()):
 			rospy.sleep(0.1)
 			
-	def goToDropPosition(self,grip=35):
+	def goToDropPosition(self,grip=120):
+		if(grip==120): #No change
+			grip=self.robpar.gripper/12
 		self.robpar.setReal(-140,0,300,-90,0,0,grip)
 		self.moveMotTo()
 		while(self.isBusy()):
 			rospy.sleep(0.1)
+			
+	def testxyz(self):
+		self.robpar.setxyzypr2rob(300,-300,500,-45,-45,-45)
+		print "Coord",self.robpar.getReal()
+		self.moveMotTo()
+		while(self.isBusy()):
+			rospy.sleep(0.1)
+		exit()
+		rospy.sleep(10)
 		
 	def searchObject(self):
 		print "Searching Object..."
@@ -240,8 +257,8 @@ class genint:
 		print "Centered: x=",xpos," y=",ypos
 		return
 		
-	def goDown(self,hight):
-		self.robpar.goDown(hight)
+	def moveZedmm(self,hight):
+		self.robpar.moveZedmm(hight)
 		self.moveMotTo()
 		while(self.isBusy()):
 			rospy.sleep(0.1)
@@ -250,7 +267,7 @@ class genint:
 		hl = []
 		hst = -(hmax-hmin)/step-1
 		for x in range(hmax,hmin,hst):
-			self.robpar.goDown(x)
+			self.robpar.moveZedmm(x)
 			self.centerObject(x,0.5,0.5,0.1)
 			print "H:",x
 		#rospy.sleep(2)
@@ -258,7 +275,7 @@ class genint:
 			
 		#hight = hmax
 		#while(hight>=hmin):
-		#	self.robpar.goDown(hight)
+		#	self.robpar.moveZedmm(hight)
 		#	self.centerObject(hight,0.5,0.5,0.1)
 		#	hight = hight-abs(hmax-hmin)/step
 		#rospy.sleep(2)
