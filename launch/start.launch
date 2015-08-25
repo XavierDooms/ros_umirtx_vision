@@ -1,0 +1,22 @@
+<launch>
+ <node
+  pkg="ros_umirtx_driver"
+  name="drivermod"
+  type="driver_module.py"
+  respawn_delay="3"
+ />
+ 
+ <node
+  pkg="ros_umirtx_vision"
+  name="visionredobj"
+  type="redobjdet"
+  respawn_delay="1"
+ />
+ 
+ <node
+  pkg="ros_umirtx_vision"
+  name="generalintelligence"
+  type="genint.py"
+  required="true"
+ />
+</launch>

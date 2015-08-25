@@ -47,14 +47,6 @@ def fillOutMsg(reqmsg,msglst): #order is wrong TODO: rearrange
 	msglst.append(reqmsg.gripper)
 
 
-#def robotreqcallback(gimod,event):
-#	try:
-#		resp1 = gimod.reqhandl(x, y)
-#		return
-#	except rospy.ServiceException, e:
-#		print "Service call failed: %s"%e
-#	return
-	
 
 class genint:
 	
@@ -89,30 +81,47 @@ class genint:
 		self.initRobot()
 		
 		
-		self.testxyz()
+		#self.robpar.setReal(-90,45,300,-90,0,-45,0)
+		#self.moveMotTo()
+		#while(self.isBusy()):
+		#	rospy.sleep(0.1)
+		
+		#self.robpar.setReal(-120,60,200,-45,0,-60,0)
+		#self.moveMotTo()
+		#while(self.isBusy()):
+		#	rospy.sleep(0.1)
+		
+		#rospy.sleep(3)
+		
+		#self.moveZedmm(0)
+		
+		#self.stopAndRelease()
+		#exit()
 		
 		#Search object
 		self.searchObject()
 		
 		#Rough goto (lowering)
-		self.centerObject(800,0.7,0.5,0.1)
+		self.centerObject(800,0.6,0.5,0.1)
 		#self.moveDownToObj(50,400,3,0.5,0.5,0.8)
 		self.moveZedmm(100)
 		#rospy.sleep(5)
 		self.centerObject(100,0.38,0.5,0.03)
+		self.changeGrabStance()
 		
 		#Go down and grab
-		self.moveZedmm(27)
+		#self.moveZedmm(27)
+		self.moveZedmm(31)
 		rospy.sleep(0.5)
 		self.grabber(35)
 		self.moveZedmm(50)
 		
 		#Drop off
-		#self.goToDropPosition() #Gripper!
-		self.testxyz()
+		self.goToDropPosition() #Gripper!
+		#self.testxyz()
 		self.moveZedmm(30)
 		self.grabber(70)
-		self.moveZedmm(50)
+		self.moveZedmm(100)
 		
 		#Back to search position
 		self.goToSearchPosition()
@@ -166,12 +175,12 @@ class genint:
 		senddata = [16,0,0,0, 0,0,0,0] #16 = init serial connection
 		resp = self.req2Robot(senddata)
 		#print "Resp = ",resp
-		rospy.sleep(1)
+		rospy.sleep(3.0)
 		
 		print "Initialising arm..."
 		senddata = [17,0,0,0, 0,0,0,0] #17 = init arm
-		#resp = self.req2Robot(senddata)
-		rospy.sleep(2.0)
+		resp = self.req2Robot(senddata)
+		rospy.sleep(1.0)
 		
 		print "Going to start of search position"
 		self.goToSearchPosition()
@@ -189,19 +198,31 @@ class genint:
 	def goToDropPosition(self,grip=120):
 		if(grip==120): #No change
 			grip=self.robpar.gripper/12
-		self.robpar.setReal(-140,0,300,-90,0,0,grip)
+		self.robpar.setReal(-130,0,300,-45,0,-90,grip)
 		self.moveMotTo()
 		while(self.isBusy()):
 			rospy.sleep(0.1)
 			
-	def testxyz(self):
-		self.robpar.setxyzypr2rob(300,-300,500,-45,-45,-45)
-		print "Coord",self.robpar.getReal()
+	def testxyz(self,grip=120):
+		self.robpar.setReal(-40,-60,300,-90,0,0,60)
 		self.moveMotTo()
 		while(self.isBusy()):
 			rospy.sleep(0.1)
+			
+		param = self.robpar.getxyzyprRob()
+		self.robpar.setxyzypr2rob(param[0],param[1],param[2],-45,-45,0)
+		self.moveMotTo()
+		while(self.isBusy()):
+			rospy.sleep(0.1)
+		rospy.sleep(3)
 		exit()
-		rospy.sleep(10)
+		
+	def changeGrabStance(self):
+		param = self.robpar.getxyzyprRob()
+		self.robpar.setxyzypr2rob(param[0],param[1],param[2],-45,-45,0,160)
+		self.moveMotTo()
+		while(self.isBusy()):
+			rospy.sleep(0.1)
 		
 	def searchObject(self):
 		print "Searching Object..."

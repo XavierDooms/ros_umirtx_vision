@@ -1,5 +1,6 @@
 #include "redobjdet.h"
 
+//extern int save;
 
 int createControlWindow(String nameWindow, int minmaxhsv[][2], int *status){
 	
@@ -24,19 +25,36 @@ int createControlWindow(String nameWindow, int minmaxhsv[][2], int *status){
 
 void selectRedObj(Mat &frameCopy, Mat &imgHSV, Mat &imgThresholded, int minmaxhsv[][2]){
 	
+	//if(save>0)
+		//imwrite("/home/xavier/Pictures/saves/redobjdet-00.jpg",frameCopy);
+	
 	cvtColor(frameCopy, imgHSV, COLOR_RGB2HSV); //Convert the captured frame from BGR to HSV  (RGB -> Hue offset)
 	inRange(imgHSV, Scalar(minmaxhsv[0][0], minmaxhsv[1][0], minmaxhsv[2][0]), Scalar(minmaxhsv[0][1], minmaxhsv[1][1], minmaxhsv[2][1]), imgThresholded); //Threshold the image
+	//imshow("HSV thresholded",imgThresholded);
+	//if(save>0)
+		//imwrite("/home/xavier/Pictures/saves/redobjdet-01.jpg",imgThresholded);
 	
-	Mat kernel = getStructuringElement(MORPH_ELLIPSE, Size(5, 5));
-	//morphological opening (remove small objects from the foreground)
-	erode(imgThresholded, imgThresholded,  kernel );
-	dilate( imgThresholded, imgThresholded, kernel ); 
-	
-	kernel = getStructuringElement(MORPH_ELLIPSE, Size(7, 7));
+	Mat kernel = getStructuringElement(MORPH_ELLIPSE, Size(7, 7));
 	//morphological closing (fill small holes in the foreground)
 	dilate( imgThresholded, imgThresholded, kernel ); 
 	erode(imgThresholded, imgThresholded, kernel );
-            
+    //imshow("Closed",imgThresholded);
+	//if(save>0)
+		//imwrite("/home/xavier/Pictures/saves/redobjdet-02.jpg",imgThresholded);
+	
+	kernel = getStructuringElement(MORPH_ELLIPSE, Size(5, 5));
+	//morphological opening (remove small objects from the foreground)
+	erode(imgThresholded, imgThresholded,  kernel );
+	dilate( imgThresholded, imgThresholded, kernel );
+	//imshow("Opened",imgThresholded);
+	//if(save>0)
+		//imwrite("/home/xavier/Pictures/saves/redobjdet-03.jpg",imgThresholded);
+	
+	/*kernel = getStructuringElement(MORPH_ELLIPSE, Size(11, 11));
+	//morphological closing (fill small holes in the foreground)
+	dilate( imgThresholded, imgThresholded, kernel ); 
+	erode(imgThresholded, imgThresholded, kernel );
+    imshow("Closed2",imgThresholded);*/
 	
 	vector<vector<Point> > contours;
 	vector<Vec4i> hierarchy;
@@ -64,6 +82,9 @@ void selectRedObj(Mat &frameCopy, Mat &imgHSV, Mat &imgThresholded, int minmaxhs
 		drawContours( imgTemp, contours, largestIndex, Scalar(255), CV_FILLED, 8, hierarchy, 0, Point() );
 	}
 	imgTemp.copyTo( imgThresholded );
+	//imshow("Contour selection",imgThresholded);
+	//if(save>0)
+		//imwrite("/home/xavier/Pictures/saves/redobjdet-04.jpg",imgThresholded);
 	
 	//split(frameCopy,rgbimg);
 		

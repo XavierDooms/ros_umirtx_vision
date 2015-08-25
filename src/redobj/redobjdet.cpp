@@ -1,6 +1,7 @@
 #include "redobjdet.h"
 
 
+//int save = 0;
 
 
 
@@ -20,7 +21,7 @@ int main( int argc, char **argv )
 	ros::Publisher chatter_pub = n.advertise<ros_umirtx_vision::VisPMsg>("visionposition", 1000);
 // %EndTag(PUBLISHER)%
 
-	try{
+	
 		
 	int c = 0 ;
     VideoCapture cap(c); // open the default camera
@@ -46,7 +47,7 @@ int main( int argc, char **argv )
 	
 	createControlWindow("Control", minmaxhsv, &status);
 	
-	
+	try{
     if(cap.isOpened())
     {
 		cap >> frame;
@@ -56,47 +57,80 @@ int main( int argc, char **argv )
 		
 		//frame.copyTo( frameCopy );
 		flip( frame, frameCopy, -1 );
-			
+		
 		Mat imgLines = Mat::zeros( frameCopy.size(), CV_8UC3 );
 		Mat imgResult= Mat::zeros( frameCopy.size(), CV_8UC3 );
 		frameHeight = frame.rows;
 		frameWidth = frame.cols;
 		
         cout << "In capture ..." << endl;
-        while(status>0)
+        while((status>0) and (ros::ok()))
         {
 			try{
-            cap >> frame;
-            if( frame.empty() )
-                break;
-            //frame.copyTo( frameCopy );
-            flip( frame, frameCopy, -1 );
-            //std::cout << "H:" << frameCopy.rows << " W:" << frameCopy.cols << std::endl;
+				cap >> frame;
+				if( frame.empty() )
+					break;
+				//frame.copyTo( frameCopy );
+				flip( frame, frameCopy, -1 );
+				//std::cout << "H:" << frameCopy.rows << " W:" << frameCopy.cols << std::endl;
+				
+				//imshow("Original",frame);
+			}
+			catch(int e)
+			{
+				cout << "Something went wrong while getting camera frame" << endl;
+			}
             
-			selectRedObj(frameCopy, imgHSV, imgThresholded, minmaxhsv);
-			getCenterOfObj(imgThresholded, imgLines, iLastXY, &dArea);
-			
-			msg.x = 100*((double)iLastXY[0])/frameWidth;
-			msg.y = 100*(double)iLastXY[1]/frameHeight;
-			msg.area = 100*dArea/frameWidth/frameHeight;
-			chatter_pub.publish(msg);
-			
-			cvtColor(imgThresholded,imgThresholded, CV_GRAY2RGB);
-			addWeighted( frameCopy, 1, imgThresholded, 0.4, 0.0, imgResult);
-			circle(imgResult,Point(iLastXY[0],iLastXY[1]),5,Scalar( 0, 0, 255 ),-1);
-            imgResult = imgResult + imgLines;
-            
-			imshow("Result",imgResult);
-			
+            try{
+				selectRedObj(frameCopy, imgHSV, imgThresholded, minmaxhsv);
+				getCenterOfObj(imgThresholded, imgLines, iLastXY, &dArea);
+				
+				msg.x = 100*((double)iLastXY[0])/frameWidth;
+				msg.y = 100*(double)iLastXY[1]/frameHeight;
+				msg.area = 100*dArea/frameWidth/frameHeight;
+				chatter_pub.publish(msg);
+				
+				cvtColor(imgThresholded,imgThresholded, CV_GRAY2RGB);
+				addWeighted( frameCopy, 1, imgThresholded, 0.4, 0.0, imgResult);
+				circle(imgResult,Point(iLastXY[0],iLastXY[1]),5,Scalar( 0, 0, 255 ),-1);
+				imgResult = imgResult + imgLines;
+				
+				imshow("Result",imgResult);
+				//if(save>0)
+				//	imwrite("/home/xavier/Pictures/saves/redobjdet-05.jpg",imgResult);
 			}
 			catch(int e){
-				cout << "Oopsie!" << endl;
+				cout << "Something went wrong while processing image" << endl;
 			}
 			
-            if( waitKey( 10 ) >= 0 )
-                //goto _cleanup_;
-                cout << "Button pressed" << endl;
-                //break;
+			//save = 0;
+			int key = waitKey( 10 );
+			if( key > 0)
+			{
+				key &= 255;
+				cout << "Button pressed: " << key << endl;
+				
+				if( key == ' ' )
+				{
+					waitKey( 10 );
+					key = 0;
+					while( key != ' ')
+					{
+						ros::spinOnce();
+						key = waitKey( 20 );
+						if(key>=0)
+							key &= 255;
+					}
+						
+				}
+				else if(key == 'c')
+				{
+					//ros::spinOnce();
+					break;
+				}
+				//else if(key == 's')
+				//	save = 1;
+			}
             
             ros::spinOnce();
         }
@@ -104,14 +138,15 @@ int main( int argc, char **argv )
         //waitKey(0);
 
 
-//_cleanup_:
+
     }
-}
-catch(int e){
-	cout << "Oopsie2!" << endl;
-}
+	}
+	catch(int e){
+		cout << "Error occured!" << endl;
+	}
+	
     
-    cvDestroyWindow("Result");
+    destroyAllWindows();
 
     return 0;
 }

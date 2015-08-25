@@ -66,14 +66,14 @@ class RobParam:
 		return
 	
 	#Get real world values
-	def getReal(self):
+	def getReal(self,lgrip=177):
 		robelb = self.elbow*0.06844
 		robsho = self.shoulder*0.03422
-		robzed = 915+self.zed*0.2667
 		robpit = (self.wrist1+self.wrist2)*0.07415/2
 		robroll= (self.wrist1-self.wrist2)*0.07415/2
+		robzed = 915 + self.zed*0.2667 + lgrip*math.sin(math.radians(robpit))
 		robyaw = self.yaw*0.10267
-		robgri = self.gripper*90/12 #TODO check correctness (manual = unclear. said non-linear)
+		robgri = self.gripper*90/1200 #TODO check correctness (manual = unclear. said non-linear)
 		return [robelb,robsho,robzed,robpit,robroll,robyaw,robgri]
 		
 	def searchLR(self,direction,minangle,maxangle,step=400):
@@ -104,11 +104,15 @@ class RobParam:
 		
 	def moveZedmm(self,value=100): #Protects against hight of groundplate with gripper
 		angle = (self.wrist1+self.wrist2)*0.07415/2
-		hgrip = int(round(-177*math.sin(math.radians(angle))))
-		zmin = int(round(3.74953*(value+hgrip-915)))
+		hgrip = int(round(177*math.sin(math.radians(angle))))
+		if((value-hgrip)<45):
+			h = 45
+		else:
+			h = value-hgrip
+		zmin  = int(round(3.74953*(h-915)))
 		#print "zmin:",zmin," angle:",angle," hgrip:",hgrip
-		if(zmin<-2700):
-			zmin=-2700
+		#if(zmin<-2700):
+		#	zmin=-2700
 		self.setZed(zmin)
 		return False
 		
@@ -244,12 +248,12 @@ class RobParam:
 		
 		return  [robelb,robsho,robzed,robpit,robrol,robyaw]
 		
-	def setxyzypr2rob(self,x,y,z,yaw,pitch,roll):
-		param = self.xyzypr2rob(x,y,z,yaw,pitch,roll)
+	def setxyzypr2rob(self,x,y,z,yaw,pitch,roll,lgrip=177):
+		param = self.xyzypr2rob(x,y,z,yaw,pitch,roll,lgrip)
 		self.setRobLstPR(param)
 	
 	#Calculates the robot paramters with an x,y,z coordinates and the desired grip angle (pitch,roll) yaw extended
-	def xyzpr2rob1(self,xtip,ytip,ztip,pitchd,rolld):
+	def xyzpr2rob(self,xtip,ytip,ztip,pitchd,rolld):#Not finished
 		#Constants and radians values
 		lgrip  = 177
 		#yawr    = math.radians(yawd)
@@ -281,11 +285,29 @@ class RobParam:
 		
 		return  int(round([robelb,robsho,robzed,robpit,robpit,0]))
 	
-	def setxyzpr2rob1(self,x,y,z,yaw,pitch,roll):
+	def setxyzpr2rob(self,x,y,z,yaw,pitch,roll):
 		param = self.xyzpr2rob1(x,y,z,yaw,pitch,roll)
 		self.setRobLstPR(param)
 		
-	def getxyzyprRob(self):
+	def getxyzyprRob(self,lgrip=177):
+		param = self.getReal() #[robelb,robsho,robzed,robpit,robroll,robyaw,robgri]
+		elbr = math.radians(param[0])
+		shor = math.radians(param[1])
+		pitr = math.radians(param[3])
+		rolr = math.radians(param[4])
+		yawr = math.radians(param[5])
 		
+		xelb = 253.5*math.cos(shor)
+		yelb = 253.5*math.sin(shor)
 		
-		return
+		xwri = xelb+253.5*math.cos(elbr+shor)
+		ywri = yelb+253.5*math.sin(elbr+shor)
+		
+		dgri = lgrip*math.cos(pitr)
+		hgri = lgrip*math.sin(pitr)
+		thya = math.atan2(ywri,xwri)+yawr
+		xgri = xwri+dgri*math.cos(thya)
+		ygri = ywri+dgri*math.sin(thya)
+		zgri = param[2]
+		
+		return [xgri,ygri,zgri,math.degrees(thya),param[3],param[4],param[6]]
